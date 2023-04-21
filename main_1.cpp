@@ -60,24 +60,51 @@ class Cannon
     private:
         SDL_Texture *cannon_Texture;
         SDL_Rect destRect;
+
 };
 class Bullet
 {
-
+     public:
+        Bullet(const char* texturesheet,int x,int y);
+        ~Bullet();
+        void update_bullet();
+        void render_bullet();
+        int xpos;
+        int ypos;
+    private:
+        SDL_Texture *bullet_Texture;
+        SDL_Rect destRect;
 };
 class Arrow
 {
     public:
         Arrow(const char* texturesheet,int x,int y);
         ~Arrow();
-        void update_arrow();
+        void update_arrow(bool stop);
         void render_arrow();
         int xpos;
         int ypos;
+        int degrees=-50;
         SDL_Rect destRect;
+        int d=1;
+        SDL_Point center;
+        bool stop = false;
     private:
         SDL_Texture *arrow_Texture;
 
+};
+class Health
+{
+    public:
+        Bullet(const char* texturesheet,int x,int y);
+        ~Bullet();
+        void update_bullet();
+        void render_bullet();
+        int xpos;
+        int ypos;
+    private:
+        SDL_Texture *bullet_Texture;
+        SDL_Rect destRect;
 };
 Castle *player_castle;
 Castle *enemy_castle;
@@ -155,7 +182,7 @@ void Game::update()
     enemy_castle->update_castle();
     player_cannon->update_cannon();
     enemy_cannon->update_cannon();
-    arrow->update_arrow();
+    arrow->update_arrow(arrow->stop);
 }
 void Game::clean()
 {
@@ -204,16 +231,25 @@ Arrow::Arrow(const char* texturesheet,int x,int y)
     xpos=x;
     ypos=y;
 }
-void Arrow::update_arrow()
+void Arrow::update_arrow(bool stop)
 {
     destRect.x=xpos;
     destRect.y=ypos;
     destRect.w=40;
     destRect.h=40;
+    center.x=0;
+    center.y=20;
+    if (!stop)
+    {
+        degrees=degrees+1*d;
+        if (degrees>20)d=-1;
+        if (degrees<-65)d=+1;
+    }
+
 }
 void Arrow::render_arrow()
 {
-    SDL_RenderCopyEx(renderer,arrow_Texture,NULL,&destRect,0,NULL,SDL_FLIP_NONE);
+    SDL_RenderCopyEx(renderer,arrow_Texture,NULL,&destRect,degrees,&center,SDL_FLIP_NONE);
 }
 int main(int argc, char *argv[])
 {
@@ -235,6 +271,9 @@ int main(int argc, char *argv[])
         Uint32 buttons = SDL_GetMouseState(&x, &y);
         if (buttons & SDL_BUTTON(SDL_BUTTON_LEFT))
         {
+            if (!arrow->stop)arrow->stop=true;
+            else arrow->stop=false;
+            cout<<arrow->degrees<<endl;
         }
         if (frameDelay>frameTime)
         {
