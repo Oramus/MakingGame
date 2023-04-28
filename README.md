@@ -1,8 +1,8 @@
 # MakingGame
 Avatar
 
-Introduction : 
-  -This game is about a fight between an ice castle and an earth castle. 
+Introduction :
+  -This game is about a fight between an ice castle and an earth castle.
   -You will play in ice faction and the purpose's defeating earth castle.
 Role :
   -Each castle has 100 hp and will lose when reaching 0 hp.
