@@ -19,7 +19,7 @@ SDL_Texture* LoadTexture(const char* text)
             return tex;
         }
 
-bool checkCollision(SDL_Rect a, SDL_Rect b )
+bool checkCollision(SDL_Rect a, SDL_Rect b )  //hàm kiểm tra va chạm
 {
     int leftA, leftB;
     int rightA, rightB;
@@ -43,7 +43,7 @@ bool checkCollision(SDL_Rect a, SDL_Rect b )
     return true;
 }
 
-class Game
+class Game                      // class game chính
 {
     public:
         Game();
@@ -70,7 +70,7 @@ class Game
 
 };
 
-class Castle
+class Castle                    // class thành
 {
    public:
         Castle(const char* texturesheet,int x,int y);
@@ -84,7 +84,7 @@ class Castle
         SDL_Texture *castle_Texture;
 };
 
-class Cannon
+class Cannon                      // class pháo
 {
     public:
         Cannon(const char* texturesheet,int x,int y);
@@ -597,6 +597,7 @@ int main(int argc, char *argv[])
     bool isMute = false;
     bool start = true;
     bool play = false;
+    bool can_update = true;
     bool check_bullet = false;
     int rand_angle = 30+rand()%40;
     int rand_power = 200+rand()%400;
@@ -606,7 +607,8 @@ int main(int argc, char *argv[])
     {
         frameStart = SDL_GetTicks();
         game->handleEvents();
-        game->update();
+        if (can_update) game->update();
+        can_update = !menu_expand_show && !help_show && !quit_show && menu_show;
         game->render();
         if (menu_show)          SDL_RenderCopy(renderer,LoadTexture("image/menu.png"),NULL,&menu_rect);
         if (menu_expand_show)   SDL_RenderCopy(renderer,LoadTexture("image/menu_expand.png"),NULL,&menu_expand_rect);
@@ -782,7 +784,7 @@ int main(int argc, char *argv[])
 
                 if (player_bullet->can_count)
                 {
-                        player_bullet->t++;
+                        if (can_update)player_bullet->t++;
                         if (checkCollision(player_bullet->destRect,enemy_castle->destRect))
                         {
                             game->check = true;
@@ -808,7 +810,7 @@ int main(int argc, char *argv[])
                 enemy_bullet->veloc = rand_power;
                 enemy_bullet->type = rand_bullet;
                 enemy_bullet->can_count=true;
-                if (enemy_bullet->can_count==true)enemy_bullet->t++;
+                if (enemy_bullet->can_count && can_update)enemy_bullet->t++;
                 if (checkCollision(enemy_bullet->destRect,player_castle->destRect))
                 {
                     game->check = true;
@@ -846,7 +848,6 @@ int main(int argc, char *argv[])
             explosion = Mix_LoadWAV("image/explosion.wav");
         }
         SDL_RenderPresent(renderer);
-        cout<<x<<" "<<y<<endl;
     }
     game->clean();
     return 0;
