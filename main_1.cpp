@@ -19,7 +19,7 @@ SDL_Texture* LoadTexture(const char* text)
             return tex;
         }
 
-bool checkCollision(SDL_Rect a, SDL_Rect b )  //hàm kiểm tra va chạm
+bool checkCollision(SDL_Rect a, SDL_Rect b )
 {
     int leftA, leftB;
     int rightA, rightB;
@@ -43,7 +43,7 @@ bool checkCollision(SDL_Rect a, SDL_Rect b )  //hàm kiểm tra va chạm
     return true;
 }
 
-class Game                      // class game chính
+class Game
 {
     public:
         Game();
@@ -57,6 +57,8 @@ class Game                      // class game chính
         int step = 1;
         bool run_arrow = false;
         bool run_bullet_player = false;
+        bool run_ice_bullet_3_1 = false;
+        bool run_ice_bullet_3_3 = false;
         bool run_bullet_enemy = false;
         bool check = false;
         bool win = false;
@@ -70,7 +72,7 @@ class Game                      // class game chính
 
 };
 
-class Castle                    // class thành
+class Castle
 {
    public:
         Castle(const char* texturesheet,int x,int y);
@@ -84,16 +86,20 @@ class Castle                    // class thành
         SDL_Texture *castle_Texture;
 };
 
-class Cannon                      // class pháo
+class Cannon
 {
     public:
-        Cannon(const char* texturesheet,int x,int y);
+        Cannon(const char* texturesheet,int x,int y,string z);
         ~Cannon();
-        void update_cannon();
+        void update_cannon(string y);
         void render_cannon();
         int xpos;
         int ypos;
+        int cannon_now = 1;
         SDL_Rect destRect;
+        SDL_Rect destRect_ice_cannon[11];
+        SDL_Rect destRect_earth_cannon[10];
+        string type = "";
     private:
         SDL_Texture *cannon_Texture;
 };
@@ -113,9 +119,9 @@ class PlayerBullet
         int t = 0;
         int damage = 20;
         int type = -1;
-        int count_2 = 3;
-        int count_3 = 2;
-        int count_4 = 1;
+        int count_2 = 8;
+        int count_3 = 5;
+        int count_4 = 2;
         bool can_count = false;
         SDL_Rect destRect;
     private:
@@ -143,6 +149,39 @@ class EnemyBullet
         SDL_Texture *bullet_Texture;
 };
 
+class PickBullet
+{
+    public:
+        PickBullet(const char* texturesheet,int x,int y);
+        ~PickBullet();
+
+        void update_pick();
+        void render_pick();
+        int xpos;
+        int ypos;
+        SDL_Rect destRect[11];
+        SDL_Texture *pick_Texture;
+        int pick_now = 1;
+};
+
+class AnimationBullet
+{
+    public:
+        AnimationBullet(const char* texturesheet,int x,int y);
+        ~AnimationBullet();
+        SDL_Texture *animation_Texture;
+        int animation_now = 1;
+        void update_position(int x,int y);
+        void update_animation(string y);
+        void render_animation(string y);
+        SDL_Rect destRect_bullet_1[8];
+        SDL_Rect destRect_ice_bullet_4[12];
+        SDL_Rect destRect_ice_bullet_2[10];
+        SDL_Rect destRect_earth_bullet_2[8];
+        SDL_Rect destRect_earth_bullet_3[5];
+        SDL_Rect destRect_earth_bullet_4[10];
+};
+
 class Arrow
 {
     public:
@@ -153,6 +192,7 @@ class Arrow
         int xpos;
         int ypos;
         int degrees = 0;
+        int arrow_now = 1;
         SDL_Rect destRect;
         int d = 1;
         SDL_Point center;
@@ -174,31 +214,20 @@ class Hp
         SDL_Rect destRect;
 };
 
-class PickBullet
-{
-    public:
-        PickBullet(const char* texturesheet,int x,int y);
-        ~PickBullet();
-        void update_pick();
-        void render_pick();
-        int xpos;
-        int ypos;
-        SDL_Rect destRect;
-    private:
-        SDL_Texture *pick_Texture;
-};
-
 Castle *player_castle;
 Castle *enemy_castle;
 Cannon *player_cannon;
 Cannon *enemy_cannon;
 PlayerBullet *player_bullet;
+PlayerBullet *ice_bullet_3_1;
+PlayerBullet *ice_bullet_3_3;
 EnemyBullet *enemy_bullet;
 Hp *player_hp;
 Hp *enemy_hp;
 Arrow *arrow;
 Game *game = nullptr;
 PickBullet *pick_bullet;
+AnimationBullet *animation_bullet;
 
 Game::Game()
 {
@@ -234,14 +263,17 @@ void Game::init(const char *title, int width, int height, bool fullscreen)
     background =        LoadTexture("image/bg1.png");
     player_castle =     new Castle("image/ice_castle_left.png",0,400);
     enemy_castle =      new Castle("image/earth_castle_right.png",1200,400);
-    player_cannon =     new Cannon("image/ice_cannon_1.png",210,540);
-    enemy_cannon =      new Cannon("image/earth_cannon_right.png",1110,540);
-    arrow =             new Arrow("image/arrow.png",280,500);
+    player_cannon =     new Cannon("image/animation_ice_cannon_1.png",210,540,"ice");
+    enemy_cannon =      new Cannon("image/earth_cannon_right.png",1110,540,"earth");
+    arrow =             new Arrow("image/arrow_1.png",280,500);
     player_bullet =     new PlayerBullet("image/ice_bullet_3.png",0,0);
     enemy_bullet=       new EnemyBullet("image/earth_bullet_3.png",0,0);
     player_hp =         new Hp("image/hp_100.png",30,350);
     enemy_hp =          new Hp("image/hp_100.png",1250,350);
-    pick_bullet =       new PickBullet("image/pick.png",100,100);
+    pick_bullet =       new PickBullet("image/pick_1.png",100,100);
+    animation_bullet =  new AnimationBullet("image/animation_bullet_1.png",100,100);
+    ice_bullet_3_1 =    new PlayerBullet("image/ice_bullet_3.png",0,0);
+    ice_bullet_3_3 =    new PlayerBullet("image/ice_bullet_3.png",0,0);
 }
 
 void Game::handleEvents()
@@ -272,43 +304,21 @@ void Game::render()
     if (run_arrow)arrow->render_arrow();
     if (run_bullet_player)player_bullet->render_bullet();
     if (run_bullet_enemy)enemy_bullet->render_bullet();
-    if (pick_done == true)
-    {
-        pick_bullet->render_pick();
-        int x,y;
-        Uint32 buttons = SDL_GetMouseState(&x, &y);
-        SDL_Rect show={x,y,150,300};
-        if (sqrt((x-59)*(x-59)+(y-83)*(y-83))<=22)
-            {
-                SDL_RenderCopy(renderer,LoadTexture("image/intro_2.png"),NULL,&show);
-            }
-           else if (sqrt((x-156)*(x-156)+(y-82)*(y-82))<=22)
-            {
-                SDL_RenderCopy(renderer,LoadTexture("image/intro_2.png"),NULL,&show);
-
-            }
-           else if (sqrt((x-402)*(x-402)+(y-81)*(y-81))<=27)
-            {
-                SDL_RenderCopy(renderer,LoadTexture("image/intro_4.png"),NULL,&show);
-
-            }
-           else if (x>=229 && x<=350&&y>=70&&y<=98)
-            {
-                 SDL_RenderCopy(renderer,LoadTexture("image/intro_3.png"),NULL,&show);
-
-            }
-    }
+    if (run_ice_bullet_3_1)ice_bullet_3_1->render_bullet();
+    if (run_ice_bullet_3_3)ice_bullet_3_3->render_bullet();
+    if (pick_done == true) pick_bullet->render_pick();
     if (win == true)SDL_RenderCopy(renderer,LoadTexture("image/winner.png"),NULL,NULL);
     if (lose == true)SDL_RenderCopy(renderer,LoadTexture("image/winner.png"),NULL,NULL);
-
 }
 
 void Game::update()
 {
     player_castle->update_castle();
+    ice_bullet_3_1->update_bullet();
+    ice_bullet_3_3->update_bullet();
     enemy_castle->update_castle();
-    player_cannon->update_cannon();
-    enemy_cannon->update_cannon();
+    player_cannon->update_cannon("image/animation_ice_cannon_");
+    enemy_cannon->update_cannon("image/animation_earth_cannon_");
     player_bullet->update_bullet();
     enemy_bullet->update_bullet();
     arrow->update_arrow();
@@ -345,24 +355,65 @@ void Castle::render_castle()
     SDL_RenderCopy(renderer, castle_Texture,NULL,&destRect);
 }
 
-Cannon::Cannon(const char* texturesheet,int x,int y)
+Cannon::Cannon(const char* texturesheet,int x,int y, string z)
 {
     cannon_Texture=LoadTexture(texturesheet);
-    xpos=x;
-    ypos=y;
-}
+    type = z;
 
-void Cannon::update_cannon()
-{
-    destRect.x = xpos;
-    destRect.y = ypos;
+    destRect_ice_cannon[1].w = 60;
+    destRect_ice_cannon[1].h = 60;
+
+    destRect_ice_cannon[2].w = 64;
+    destRect_ice_cannon[2].h = 61;
+
+    destRect_ice_cannon[3].w = 68;
+    destRect_ice_cannon[3].h = 58;
+
+    destRect_ice_cannon[4].w = 72;
+    destRect_ice_cannon[4].h = 53;
+
+    destRect_ice_cannon[5].w = 74;
+    destRect_ice_cannon[5].h = 54;
+
+    destRect_ice_cannon[6].w = 71;
+    destRect_ice_cannon[6].h = 53;
+
+    destRect_ice_cannon[7].w = 62;
+    destRect_ice_cannon[7].h = 69;
+
+    destRect_ice_cannon[8].w = 65;
+    destRect_ice_cannon[8].h = 77;
+
+    destRect_ice_cannon[9].w = 53;
+    destRect_ice_cannon[9].h = 79;
+
+    destRect_ice_cannon[10].w = 58;
+    destRect_ice_cannon[10].h = 53;
+
+    destRect_ice_cannon[1].x = 210;
+    destRect_ice_cannon[1].y = 540;
+
+    for (int i=2;i<=10;i++)
+    {
+        destRect_ice_cannon[i].x = 270 - destRect_ice_cannon[i].w;
+        destRect_ice_cannon[i].y = 600 - destRect_ice_cannon[i].h;
+    }
+    destRect.x = x;
+    destRect.y = y;
     destRect.w = 60;
     destRect.h = 60;
 }
 
+void Cannon::update_cannon(string y)
+{
+    string s = y + to_string(cannon_now) + ".png";
+    cannon_Texture = LoadTexture(s.c_str());
+}
+
 void Cannon::render_cannon()
 {
-    SDL_RenderCopy(renderer,cannon_Texture,NULL,&destRect);
+    if (type == "ice" ) SDL_RenderCopy(renderer,cannon_Texture,NULL,&destRect_ice_cannon[cannon_now]);
+    if (type == "earth" ) SDL_RenderCopy(renderer,cannon_Texture,NULL,&destRect);
 }
 
 Arrow::Arrow(const char* texturesheet,int x,int y)
@@ -370,16 +421,18 @@ Arrow::Arrow(const char* texturesheet,int x,int y)
     arrow_Texture=LoadTexture(texturesheet);
     xpos = x;
     ypos = y;
-}
-
-void Arrow::update_arrow()
-{
     destRect.x = xpos;
     destRect.y = ypos;
     destRect.w = 60;
     destRect.h = 60;
     center.x = 0;
     center.y = 30;
+}
+
+void Arrow::update_arrow()
+{
+    string s = "image/arrow_" + to_string(arrow_now)+ ".png";
+    arrow_Texture = LoadTexture(s.c_str());
 }
 
 void Arrow::render_arrow()
@@ -413,35 +466,34 @@ void PlayerBullet::update_bullet()
         damage=10;
         xpos=245;
         ypos=560;
-        destRect.w = 25;
-        destRect.h = 30;
+        destRect.w = 20;
+        destRect.h = 17;
 
     }
     else if (type== 2)
     {
-        damage = 15;
-        xpos = 245;
-        ypos = 560;
+        damage = 20;
+        xpos = 238;
+        ypos = 571;
         destRect.w = 20;
-        destRect.h = 30;
+        destRect.h = 19;
     }
     else if (type== 3)
     {
-        damage=25;
+        damage = 30;
         xpos = 245;
         ypos = 565;
-        destRect.w = 35;
-        destRect.h = 35;
+        destRect.w = 45;
+        destRect.h = 8;
     }
     else if (type==4)
     {
         damage=40;
         xpos = 240;
         ypos = 560;
-        destRect.w = 30;
-        destRect.h = 30;
+        destRect.w = 22;
+        destRect.h = 20;
     }
-
 }
 
 void PlayerBullet::render_bullet()
@@ -482,33 +534,33 @@ void EnemyBullet::update_bullet()
         damage=10;
         xpos=1100;
         ypos=560;
-        destRect.w = 25;
-        destRect.h = 30;
+        destRect.w = 20;
+        destRect.h = 17;
 
     }
     else if (type== 2)
     {
-        damage = 15;
+        damage = 20;
         xpos = 1100;
         ypos = 560;
         destRect.w = 20;
-        destRect.h = 30;
+        destRect.h = 17;
     }
     else if (type== 3)
     {
-        damage=25;
+        damage=30;
         xpos = 1100;
         ypos = 565;
-        destRect.w = 35;
-        destRect.h = 35;
+        destRect.w = 55;
+        destRect.h = 5;
     }
     else if (type==4)
     {
         damage=40;
         xpos = 1100;
         ypos = 560;
-        destRect.w = 30;
-        destRect.h = 30;
+        destRect.w = 32;
+        destRect.h = 22;
     }
 }
 
@@ -549,22 +601,233 @@ void Hp::render_hp()
 PickBullet::PickBullet(const char* texturesheet,int x,int y)
 {
     pick_Texture = LoadTexture(texturesheet);
-    xpos = 0;
-    ypos = 0;
-
+    destRect[1].h = 10;
+    destRect[2].h = 22;
+    destRect[3].h = 32;
+    destRect[4].h = 46;
+    destRect[5].h = 62;
+    destRect[6].h = 85;
+    destRect[7].h = 100;
+    destRect[8].h = 123;
+    destRect[9].h = 141;
+    destRect[10].h = 152;
+    for (int i=1;i<11;i++)
+    {
+        destRect[i].w = 466;
+        destRect[i].x = 0;
+        destRect[i].y = 700 - destRect[i].h;
+    }
 }
 
 void PickBullet::update_pick()
 {
-    destRect.x = xpos;
-    destRect.y = ypos;
-    destRect.w = 455;
-    destRect.h = 108;
+    string s = "image/pick_"+to_string(pick_now)+".png";
+    pick_Texture = LoadTexture(s.c_str());
 }
 
 void PickBullet::render_pick()
 {
-    SDL_RenderCopy(renderer, pick_Texture,NULL,&destRect);
+    SDL_RenderCopy(renderer, pick_Texture,NULL,&destRect[pick_now]);
+}
+
+AnimationBullet::AnimationBullet(const char* texturesheet,int x,int y)
+{
+    destRect_bullet_1[1].w = 26;
+    destRect_bullet_1[1].h = 40;
+
+    destRect_bullet_1[2].w = 53;
+    destRect_bullet_1[2].h = 55;
+
+    destRect_bullet_1[3].w = 64;
+    destRect_bullet_1[3].h = 63;
+
+    destRect_bullet_1[4].w = 98;
+    destRect_bullet_1[4].h = 116;
+
+    destRect_bullet_1[5].w = 83;
+    destRect_bullet_1[5].h = 97;
+
+    destRect_bullet_1[6].w = 92;
+    destRect_bullet_1[6].h = 92;
+
+    destRect_bullet_1[7].w = 85;
+    destRect_bullet_1[7].h = 89;
+
+    destRect_ice_bullet_4[1].w = 57;
+    destRect_ice_bullet_4[1].h = 69;
+
+    destRect_ice_bullet_4[2].w = 59;
+    destRect_ice_bullet_4[2].h = 64;
+
+    destRect_ice_bullet_4[3].w = 57;
+    destRect_ice_bullet_4[3].h = 59;
+
+    destRect_ice_bullet_4[4].w = 76;
+    destRect_ice_bullet_4[4].h = 57;
+
+    destRect_ice_bullet_4[5].w = 73;
+    destRect_ice_bullet_4[5].h = 54;
+
+    destRect_ice_bullet_4[6].w = 82;
+    destRect_ice_bullet_4[6].h = 47;
+
+    destRect_ice_bullet_4[7].w = 98;
+    destRect_ice_bullet_4[7].h = 32;
+
+    destRect_ice_bullet_4[8].w = 100;
+    destRect_ice_bullet_4[8].h = 32;
+
+    destRect_ice_bullet_4[9].w = 110;
+    destRect_ice_bullet_4[9].h = 38;
+
+    destRect_ice_bullet_4[10].w = 99;
+    destRect_ice_bullet_4[10].h = 31;
+
+    destRect_ice_bullet_4[11].w = 88;
+    destRect_ice_bullet_4[11].h = 21;
+
+    destRect_ice_bullet_2[1].w = 18;
+    destRect_ice_bullet_2[1].h = 27;
+
+    destRect_ice_bullet_2[2].w = 42;
+    destRect_ice_bullet_2[2].h = 67;
+
+    destRect_ice_bullet_2[3].w = 68;
+    destRect_ice_bullet_2[3].h = 103;
+
+    destRect_ice_bullet_2[4].w = 58;
+    destRect_ice_bullet_2[4].h = 100;
+
+    destRect_ice_bullet_2[5].w = 70;
+    destRect_ice_bullet_2[5].h = 104;
+
+    destRect_ice_bullet_2[6].w = 47;
+    destRect_ice_bullet_2[6].h = 95;
+
+    destRect_ice_bullet_2[7].w = 37;
+    destRect_ice_bullet_2[7].h = 85;
+
+    destRect_ice_bullet_2[8].w = 38;
+    destRect_ice_bullet_2[8].h = 73;
+
+    destRect_ice_bullet_2[9].w = 37;
+    destRect_ice_bullet_2[9].h = 70;
+
+    destRect_earth_bullet_2[1].w = 14;
+    destRect_earth_bullet_2[1].h = 10;
+
+    destRect_earth_bullet_2[2].w = 28;
+    destRect_earth_bullet_2[2].h = 24;
+
+    destRect_earth_bullet_2[3].w = 60;
+    destRect_earth_bullet_2[3].h = 35;
+
+    destRect_earth_bullet_2[4].w = 98;
+    destRect_earth_bullet_2[4].h = 48;
+
+    destRect_earth_bullet_2[5].w = 94;
+    destRect_earth_bullet_2[5].h = 53;
+
+    destRect_earth_bullet_2[6].w = 87;
+    destRect_earth_bullet_2[6].h = 48;
+
+    destRect_earth_bullet_2[7].w = 92;
+    destRect_earth_bullet_2[7].h = 45;
+
+    destRect_earth_bullet_3[1].w = 63;
+    destRect_earth_bullet_3[1].h = 56;
+
+    destRect_earth_bullet_3[2].w = 80;
+    destRect_earth_bullet_3[2].h = 63;
+
+    destRect_earth_bullet_3[3].w = 65;
+    destRect_earth_bullet_3[3].h = 50;
+
+    destRect_earth_bullet_3[4].w = 63;
+    destRect_earth_bullet_3[4].h = 60;
+
+    destRect_earth_bullet_4[1].w = 23;
+    destRect_earth_bullet_4[1].h = 24;
+
+    destRect_earth_bullet_4[2].w = 31;
+    destRect_earth_bullet_4[2].h = 34;
+
+    destRect_earth_bullet_4[3].w = 45;
+    destRect_earth_bullet_4[3].h = 48;
+
+    destRect_earth_bullet_4[4].w = 54;
+    destRect_earth_bullet_4[4].h = 62;
+
+    destRect_earth_bullet_4[5].w = 63;
+    destRect_earth_bullet_4[5].h = 70;
+
+    destRect_earth_bullet_4[6].w = 68;
+    destRect_earth_bullet_4[6].h = 69;
+
+    destRect_earth_bullet_4[7].w = 65;
+    destRect_earth_bullet_4[7].h = 62;
+
+    destRect_earth_bullet_4[8].w = 63;
+    destRect_earth_bullet_4[8].h = 64;
+
+    destRect_earth_bullet_4[9].w = 58;
+    destRect_earth_bullet_4[9].h = 62;
+}
+
+void AnimationBullet::update_position(int x,int y)
+{
+    for (int i=1;i<=7;i++)
+    {
+        destRect_bullet_1[i].x = x - (destRect_bullet_1[i].w/2) + 12;
+        destRect_bullet_1[i].y = y - (destRect_bullet_1[i].h/2) + 15;
+    }
+    for (int i=1;i<=11;i++)
+    {
+        destRect_ice_bullet_4[i].x = x;
+        destRect_ice_bullet_4[i].y = y + 18 - destRect_ice_bullet_4[i].h;
+    }
+    destRect_ice_bullet_4[10].x = x + 110 - destRect_ice_bullet_4[10].w;
+    destRect_ice_bullet_4[11].x = x + 110 - destRect_ice_bullet_4[11].w;
+
+    for (int i=1;i<=9;i++)
+    {
+        destRect_ice_bullet_2[i].x = x - (destRect_ice_bullet_2[i].w/2) + 13;
+        destRect_ice_bullet_2[i].y = y - (destRect_ice_bullet_2[i].h) + 19;
+    }
+
+    for (int i=1;i<=7;i++)
+    {
+        destRect_earth_bullet_2[i].x = x - (destRect_earth_bullet_2[i].w / 2) + 10;
+        destRect_earth_bullet_2[i].y = y - (destRect_earth_bullet_2[i].h ) + 17;
+    }
+
+    for (int i=1;i<=4;i++)
+    {
+        destRect_earth_bullet_3[i].x = x;
+        destRect_earth_bullet_3[i].y = y;
+    }
+
+    for (int i=1;i<=9;i++)
+    {
+        destRect_earth_bullet_4[i].x = x - (destRect_earth_bullet_4[i].w / 2) + 16;
+        destRect_earth_bullet_4[i].y = y - (destRect_earth_bullet_4[i].h / 2) + 11;
+    }
+}
+
+void AnimationBullet::update_animation(string y)
+{
+    string s= y+to_string(animation_now)+".png";
+    animation_Texture = LoadTexture(s.c_str());
+}
+
+void  AnimationBullet::render_animation(string y)
+{
+    if (y == "image/animation_ice_bullet_4_")   SDL_RenderCopy(renderer, animation_Texture,NULL,&destRect_ice_bullet_4[animation_now]);
+    if (y == "image/animation_bullet_1_")       SDL_RenderCopy(renderer, animation_Texture,NULL,&destRect_bullet_1[animation_now]);
+    if (y == "image/animation_ice_bullet_2_")   SDL_RenderCopy(renderer, animation_Texture,NULL,&destRect_ice_bullet_2[animation_now]);
+    if (y == "image/animation_earth_bullet_3_") SDL_RenderCopy(renderer, animation_Texture,NULL,&destRect_earth_bullet_3[animation_now]);
+    if (y == "image/animation_earth_bullet_2_") SDL_RenderCopy(renderer, animation_Texture,NULL,&destRect_earth_bullet_2[animation_now]);
+    if (y == "image/animation_earth_bullet_4_") SDL_RenderCopy(renderer, animation_Texture,NULL,&destRect_earth_bullet_4[animation_now]);
 }
 
 int main(int argc, char *argv[])
@@ -589,26 +852,31 @@ int main(int argc, char *argv[])
     SDL_Rect quit_rect = {350,100,700,500};
     SDL_Rect turn_rect = {680,200,40,80};
     SDL_Rect play_rect = {640,300,100,50};
-    bool menu_show = true;
+    SDL_Rect intro_rect = {0,0,150,300};
+    bool menu_show = false;
     bool menu_expand_show = false;
     bool help_show = false;
     bool quit_show = false;
     bool begin_show = true;
     bool isMute = false;
-    bool start = true;
     bool play = false;
     bool can_update = true;
     bool check_bullet = false;
     int rand_angle = 30+rand()%40;
-    int rand_power = 200+rand()%400;
-    int rand_bullet = 1+rand()%4;
+    int rand_power = 200+rand()%100;
+    int rand_bullet = 2;//1+rand()%4;
     int power = 10;
+    int between_step = 0;
+    int count_number = 0;
+    int d = 1;
+    bool between_step_count = false;
+    string type_animation = "";
+    string type_animation_enemy = "";
     while (game->running())
     {
         frameStart = SDL_GetTicks();
         game->handleEvents();
-        if (can_update) game->update();
-        can_update = !menu_expand_show && !help_show && !quit_show && menu_show;
+        game->update();
         game->render();
         if (menu_show)          SDL_RenderCopy(renderer,LoadTexture("image/menu.png"),NULL,&menu_rect);
         if (menu_expand_show)   SDL_RenderCopy(renderer,LoadTexture("image/menu_expand.png"),NULL,&menu_expand_rect);
@@ -619,33 +887,322 @@ int main(int argc, char *argv[])
         Uint32 buttons = SDL_GetMouseState(&x, &y);
         if (player_hp->hp_now == 0) game->lose =true;
         if (enemy_hp->hp_now == 0) game->win = true;
-        if ( start )
+        if ( game->step == 1 )
         {
-            if (dem>1300)
-            {
-                SDL_RenderCopy(renderer,LoadTexture("image/begin.png"),NULL,NULL);
-                 dem--;
-            }
-            else
-            {
-                if (!play) SDL_RenderCopy(renderer,LoadTexture("image/play.png"),NULL,&play_rect);
-                else
+                if  (y>641 && y<685 && x>312 && x<544)
                 {
-                    string y = "image/turn_"+to_string(dem/325)+".png";
-                    SDL_RenderCopy(renderer,LoadTexture(y.c_str()),NULL,&turn_rect);
-                    dem--;
-                    if (dem==0) start = false;
+                        SDL_RenderCopy(renderer,LoadTexture("image/begin_2.png"),NULL,NULL);
+                        if  (buttons & SDL_BUTTON(SDL_BUTTON_LEFT)) game->check = true;
+                        between_step_count = true;
                 }
-                if (buttons & SDL_BUTTON(SDL_BUTTON_LEFT))
-                    if (x>=653 && x<=747 && y>=302 && y<=345 )
-                    {
-                        play = true;
-                        Mix_PlayChannel(-1, fight, 0);
-                    }
-            }
+                else if (y>641 && y<685 &&x>588 && x<815)
+                {
+                        SDL_RenderCopy(renderer,LoadTexture("image/begin_3.png"),NULL,NULL);
+                        if  (buttons & SDL_BUTTON(SDL_BUTTON_LEFT)) game->check = true;
+                        between_step_count = true;
+                }
+                else if  (y>641 && y<685 &&x>859 && x<1084)
+                {
+                        SDL_RenderCopy(renderer,LoadTexture("image/begin_4.png"),NULL,NULL);
+                        if  (buttons & SDL_BUTTON(SDL_BUTTON_LEFT)) game->check = true;
+                        between_step_count = true;
+                }
+                else SDL_RenderCopy(renderer,LoadTexture("image/begin_1.png"),NULL,NULL);
+        }
+        else if (game->step==2)
+        {
+                if  (y>617 && y<675 && x>48 && x<368)
+                {
+                        SDL_RenderCopy(renderer,LoadTexture("image/chose_nation_2.png"),NULL,NULL);
+                        if  ((buttons & SDL_BUTTON(SDL_BUTTON_LEFT))&&(between_step >20))
+                        {
+                            game->check = true;
+                            between_step_count =false;
+                        }
+                }
+                else if (y>617 && y<675 &&x>552 && x<872)
+                {
+                        SDL_RenderCopy(renderer,LoadTexture("image/chose_nation_3.png"),NULL,NULL);
+                        if  ((buttons & SDL_BUTTON(SDL_BUTTON_LEFT))&&(between_step >20))
+                        {
+                            game->check = true;
+                            between_step_count =false;
+                        }
+                }
+                else if  (y>617 && y<675 &&x>1058 && x<1372)
+                {
+                        SDL_RenderCopy(renderer,LoadTexture("image/chose_nation_4.png"),NULL,NULL);
+                        if  ((buttons & SDL_BUTTON(SDL_BUTTON_LEFT))&&(between_step >20))
+                        {
+                            game->check = true;
+                            between_step_count =false;
+                        }
+                }
+                else SDL_RenderCopy(renderer,LoadTexture("image/chose_nation_1.png"),NULL,NULL);
         }
         else
         {
+            if (game->step==3)
+            {
+                game->pick_done = true;
+                if (pick_bullet->pick_now <=9)
+                {
+                    count_number ++;
+                    pick_bullet->pick_now = 1 + (count_number/4);
+                }
+                else
+                {
+                    count_number = 0;
+                    intro_rect.x = x;
+                    intro_rect.y = y-300;
+                    if (sqrt((x-59)*(x-59)+(y-639)*(y-639))<=26)
+                    {
+                        SDL_RenderCopy(renderer,LoadTexture("image/intro_1.png"),NULL,&intro_rect);
+                        if (buttons & SDL_BUTTON(SDL_BUTTON_LEFT))
+                        {
+                            player_bullet->type=1;
+                            game->check = true;
+                            game->pick_done = false;
+                            between_step_count = true;
+                            type_animation = "bullet_1";
+                        }
+                    }
+                    else if (sqrt((x-159)*(x-159)+(y-636)*(y-636))<=30 && player_bullet->count_2 >=1)
+                    {
+                        SDL_RenderCopy(renderer,LoadTexture("image/intro_2.png"),NULL,&intro_rect);
+                        if (buttons & SDL_BUTTON(SDL_BUTTON_LEFT))
+                        {
+                            player_bullet->type = 2;
+                            game->check = true;
+                            game->pick_done = false;
+                            player_bullet->count_2 --;
+                            between_step_count = true;
+                            type_animation = "ice_bullet_2";
+                        }
+                    }
+                    else if (sqrt((x-411)*(x-411)+(y-634)*(y-634))<=24 && player_bullet->count_4 >=1)
+                    {
+                        SDL_RenderCopy(renderer,LoadTexture("image/intro_4.png"),NULL,&intro_rect);
+                        if (buttons & SDL_BUTTON(SDL_BUTTON_LEFT))
+                        {
+                            player_bullet->type = 4;
+                            game->check = true;
+                            game->pick_done = false;
+                            player_bullet->count_4--;
+                            between_step_count = true;
+                            type_animation = "ice_bullet_4";
+                        }
+                    }
+                    else if (x>=232 && x<=359&&y>=623&&y<=651 && player_bullet->count_3 >=1)
+                    {
+                        SDL_RenderCopy(renderer,LoadTexture("image/intro_3.png"),NULL,&intro_rect);
+                        if (buttons & SDL_BUTTON(SDL_BUTTON_LEFT))
+                        {
+                            player_bullet->type = 3;
+                            ice_bullet_3_1->type = 3;
+                            ice_bullet_3_3->type = 3;
+                            game->check = true;
+                            game->pick_done = false;
+                            player_bullet->count_3--;
+                            between_step_count = true;
+                            type_animation = "ice_bullet_3";
+                        }
+                    }
+                }
+            }
+            else if (game->step == 4)
+            {
+                game->run_arrow = true;
+                if (x<393)arrow->degrees = 90;
+                else if (y>542)arrow->degrees = 30;
+                else
+                {
+                    arrow->degrees=atan((abs(y-542))*1.0/(abs(x-393)))*180/3.14;
+                    if (arrow->degrees < 30 ) arrow->degrees = 30;
+                }
+                if ((buttons & SDL_BUTTON(SDL_BUTTON_LEFT)) && between_step >10 )
+                {
+                    arrow->arrow_now = 1 + (count_number / 4);
+                    power = power + 12*d;
+                    count_number = count_number + d;
+                    if (arrow->arrow_now == 13) d = -1;
+                    if (arrow->arrow_now == 1) d = 1;
+                    player_bullet->angle = arrow->degrees;
+                    if (type_animation == "ice_bullet_3")ice_bullet_3_1->angle = player_bullet->angle - 5;
+                    if (type_animation == "ice_bullet_3")ice_bullet_3_3->angle = player_bullet->angle + 5;
+                }
+                else if (power>10)
+                {
+                    player_bullet->can_count = true;
+                    if (type_animation == "ice_bullet_3")ice_bullet_3_1->can_count = true;
+                    if (type_animation == "ice_bullet_3")ice_bullet_3_3->can_count = true;
+                    game->run_arrow = false;
+                    player_bullet->veloc = power;
+                    if (type_animation == "ice_bullet_3")ice_bullet_3_1->veloc = power*0.95;
+                    if (type_animation == "ice_bullet_3")ice_bullet_3_3->veloc = power*1.05;
+                    between_step_count = false;
+                    arrow->arrow_now = 1;
+                    count_number = 0;
+                    game->check = true;
+                }
+            }
+            else if (game->step == 5)
+            {
+                count_number++;
+                player_cannon->cannon_now = 1 + count_number / 4;
+                if (player_cannon->cannon_now == 10) game->check = true;
+            }
+            else if (game->step == 6)
+            {
+                player_cannon->cannon_now = 1;
+                count_number = 0;
+                if (player_bullet->can_count)
+                {
+                    if (can_update)player_bullet->t++;
+                    if (checkCollision(player_bullet->destRect,enemy_castle->destRect))
+                    {
+                        enemy_hp->hp_now = enemy_hp->hp_now - player_bullet->damage;
+                        game->run_bullet_player = false;
+                        player_bullet->reset();
+                        player_bullet->can_count = false;
+                        Mix_PlayChannel(-1, explosion, 0);
+                        animation_bullet->update_position(player_bullet->destRect.x,player_bullet->destRect.y);
+                    }
+                    else if (player_bullet->destRect.x>1400||player_bullet->destRect.y>580)
+                    {
+                        game->run_bullet_player = false;
+                        player_bullet->reset();
+                        Mix_PlayChannel(-1, explosion, 0);
+                        animation_bullet->update_position(player_bullet->destRect.x,player_bullet->destRect.y);
+                    }
+                }
+                if (ice_bullet_3_1->can_count && type_animation == "ice_bullet_3")
+                {
+                    ice_bullet_3_1->t++;
+                    if (checkCollision(ice_bullet_3_1->destRect,enemy_castle->destRect))
+                    {
+                        enemy_hp->hp_now = enemy_hp->hp_now - player_bullet->damage;
+                        game->run_ice_bullet_3_1 = false;
+                        ice_bullet_3_1->reset();
+                        ice_bullet_3_1->can_count = false;
+                        Mix_PlayChannel(-1, explosion, 0);
+
+                    }
+                    else if (ice_bullet_3_1->destRect.x>1400||ice_bullet_3_1->destRect.y>580)
+                    {
+                        game->run_ice_bullet_3_1 = false;
+                        ice_bullet_3_1->reset();
+                        Mix_PlayChannel(-1, explosion, 0);
+                        ice_bullet_3_1->can_count = false;
+                    }
+                }
+                if (ice_bullet_3_3->can_count  && type_animation == "ice_bullet_3")
+                {
+                    ice_bullet_3_3->t++;
+                    if (checkCollision(ice_bullet_3_3->destRect,enemy_castle->destRect))
+                    {
+                        enemy_hp->hp_now = enemy_hp->hp_now - player_bullet->damage;
+                        game->run_ice_bullet_3_3 = false;
+                        ice_bullet_3_3->reset();
+                        ice_bullet_3_3->can_count = false;
+                        Mix_PlayChannel(-1, explosion, 0);
+
+                    }
+                    else if (ice_bullet_3_3->destRect.x>1400||ice_bullet_3_3->destRect.y>580)
+                    {
+                        game->run_ice_bullet_3_3 = false;
+                        ice_bullet_3_3->reset();
+                        Mix_PlayChannel(-1, explosion, 0);
+                        ice_bullet_3_3->can_count = false;
+                    }
+                }
+                if (game->run_ice_bullet_3_3 == false && game->run_ice_bullet_3_1 == false && game->run_bullet_player == false) game->check = true;
+            }
+            else if (game-> step == 7)
+            {
+                count_number ++;
+                animation_bullet->animation_now = 1 + count_number/6;
+                if (type_animation == "bullet_1")
+                {
+                    animation_bullet->update_animation("image/animation_bullet_1_");
+                    animation_bullet->render_animation("image/animation_bullet_1_");
+                    if ( animation_bullet->animation_now == 7 )game->check = true;
+                }
+                else if (type_animation == "ice_bullet_4")
+                {
+                    animation_bullet->update_animation("image/animation_ice_bullet_4_");
+                    animation_bullet->render_animation("image/animation_ice_bullet_4_");
+                    if ( animation_bullet->animation_now == 11 )game->check = true;
+                }
+                else if (type_animation == "ice_bullet_2")
+                {
+                    animation_bullet->update_animation("image/animation_ice_bullet_2_");
+                    animation_bullet->render_animation("image/animation_ice_bullet_2_");
+                    if ( animation_bullet->animation_now == 9 )game->check = true;
+                }
+                else game->check = true;
+            }
+            else if (game->step == 8)
+            {
+                count_number = 0;
+                game->run_bullet_enemy = true;
+                enemy_bullet->angle = rand_angle;
+                enemy_bullet->veloc = rand_power;
+                enemy_bullet->type = rand_bullet;
+                enemy_bullet->can_count=true;
+                if (rand_bullet == 1 ) type_animation = "bullet_1";
+                if (rand_bullet == 2 ) type_animation = "earth_bullet_2";
+                if (rand_bullet == 3 ) type_animation = "earth_bullet_3";
+                if (rand_bullet == 4 ) type_animation = "earth_bullet_4";
+                if (enemy_bullet->can_count && can_update)enemy_bullet->t++;
+                if (checkCollision(enemy_bullet->destRect,player_castle->destRect))
+                {
+                    game->check = true;
+                    player_hp->hp_now = player_hp->hp_now-enemy_bullet->damage;
+                    game->run_bullet_enemy = false;
+                    enemy_bullet->reset();
+                    Mix_PlayChannel(-1, explosion, 0);
+                    animation_bullet->update_position(enemy_bullet->destRect.x,enemy_bullet->destRect.y);
+                }
+                if (enemy_bullet->destRect.x<0||enemy_bullet->destRect.y>580)
+                {
+                    game->check = true;
+                    game->run_bullet_enemy = false;
+                    enemy_bullet->reset();
+                    Mix_PlayChannel(-1, explosion, 0);
+                    animation_bullet->update_position(enemy_bullet->destRect.x,enemy_bullet->destRect.y);
+                }
+            }
+            else if (game->step == 9)
+            {
+                count_number ++;
+                animation_bullet->animation_now = 1 + count_number/8;
+                if (type_animation == "bullet_1")
+                {
+                    animation_bullet->update_animation("image/animation_bullet_1_");
+                    animation_bullet->render_animation("image/animation_bullet_1_");
+                    if ( animation_bullet->animation_now == 7 )game->check = true;
+                }
+                else if (type_animation == "earth_bullet_2")
+                {
+                    animation_bullet->update_animation("image/animation_earth_bullet_2_");
+                    animation_bullet->render_animation("image/animation_earth_bullet_2_");
+                    if ( animation_bullet->animation_now == 7 )game->check = true;
+                }
+                else if (type_animation == "earth_bullet_3")
+                {
+                    animation_bullet->update_animation("image/animation_earth_bullet_3_");
+                    animation_bullet->render_animation("image/animation_earth_bullet_3_");
+                    if ( animation_bullet->animation_now == 4 )game->check = true;
+                }
+                else if (type_animation == "earth_bullet_4")
+                {
+                    animation_bullet->update_animation("image/animation_earth_bullet_4_");
+                    animation_bullet->render_animation("image/animation_earth_bullet_4_");
+                    if ( animation_bullet->animation_now == 9 )game->check = true;
+                }
+                else game->check = true;
+            }
             if  (buttons & SDL_BUTTON(SDL_BUTTON_LEFT))
             {
                 if ( menu_show == true && x>=665 && x<=735 && y>=670 && y<=700)
@@ -704,8 +1261,6 @@ int main(int argc, char *argv[])
                     }
                     else if (x>=715 && x<=804 && y>=404 && y<=440)
                     {
-                        start = true;
-                        dem = 1800;
                         quit_show = false;
                         fight = Mix_LoadWAV("image/fight.wav");
                         explosion = Mix_LoadWAV("image/explosion.wav");
@@ -722,133 +1277,60 @@ int main(int argc, char *argv[])
                         player_bullet->count_2 = 3;
                         player_bullet->count_3 = 2;
                         player_bullet->count_4 = 1;
+                        can_update = true;
+                        player_bullet->can_count = false;
+                        enemy_bullet->can_count = false;
                     }
                 }
             }
-            if (game->step==1)
+        }
+        if (between_step_count)between_step++;
+        else between_step = 0;
+        if (game->check)
+        {
+            if (game->step == 3)
             {
-               game->pick_done = true;
-               if (buttons & SDL_BUTTON(SDL_BUTTON_LEFT))
-               {
-                   if (sqrt((x-59)*(x-59)+(y-83)*(y-83))<=22)
-                   {
-                       player_bullet->type=1;
-                       game->check = true;
-                       game->pick_done = false;
-                   }
-                   else if (sqrt((x-156)*(x-156)+(y-82)*(y-82))<=22 && player_bullet->count_2 >=1)
-                   {
-                       player_bullet->type = 2;
-                       game->check = true;
-                       game->pick_done = false;
-                       player_bullet->count_2 --;
-                   }
-                   else if (sqrt((x-402)*(x-402)+(y-81)*(y-81))<=27 && player_bullet->count_4 >=1)
-                   {
-                       player_bullet->type = 4;
-                       game->check = true;
-                       game->pick_done = false;
-                       player_bullet->count_4--;
-                   }
-                   else if (x>=229 && x<=350&&y>=70&&y<=98 && player_bullet->count_3 >=1)
-                   {
-                       player_bullet->type = 3;
-                       game->check = true;
-                       game->pick_done = false;
-                       player_bullet->count_3--;
-                   }
-               }
+                pick_bullet->pick_now =1;
+                count_number = 0;
             }
-            else if (game->step == 2)
+            game->step = game->step+1;
+            if (game->step == 5) count_number = 0;
+            if (game->step == 6)
             {
                 game->run_bullet_player = true;
-                game->run_arrow = true;
-                if (x<393)arrow->degrees = 90;
-                else if (y>542)arrow->degrees = 30;
-                else
-                {
-                    arrow->degrees=atan((abs(y-542))*1.0/(abs(x-393)))*180/3.14;
-                    if (arrow->degrees < 30 ) arrow->degrees = 30;
-                }
-                if (buttons & SDL_BUTTON(SDL_BUTTON_RIGHT))
-                {
-                    player_bullet->angle = arrow->degrees;
-                    power = power + 5;
-                }
-                else if (power>10)
-                {
-                    player_bullet->can_count = true;
-                    game->run_arrow = false;
-                    player_bullet->veloc = power;
-                }
-
-                if (player_bullet->can_count)
-                {
-                        if (can_update)player_bullet->t++;
-                        if (checkCollision(player_bullet->destRect,enemy_castle->destRect))
-                        {
-                            game->check = true;
-                            enemy_hp->hp_now = enemy_hp->hp_now-player_bullet->damage;
-                            game->run_bullet_player = false;
-                            player_bullet->reset();
-                            player_bullet->can_count = false;
-                            Mix_PlayChannel(-1, explosion, 0);
-                        }
-                        else if (player_bullet->destRect.x>1400||player_bullet->destRect.y>580)
-                        {
-                            game->check = true;
-                            game->run_bullet_player = false;
-                            player_bullet->reset();
-                            Mix_PlayChannel(-1, explosion, 0);
-                        }
-                }
+                if (type_animation == "ice_bullet_3") game->run_ice_bullet_3_1 = true;
+                if (type_animation == "ice_bullet_3") game->run_ice_bullet_3_3 = true;
             }
-            else if (game->step==3)
+            if (game->step == 8)
             {
-                game->run_bullet_enemy = true;
-                enemy_bullet->angle = rand_angle;
-                enemy_bullet->veloc = rand_power;
-                enemy_bullet->type = rand_bullet;
-                enemy_bullet->can_count=true;
-                if (enemy_bullet->can_count && can_update)enemy_bullet->t++;
-                if (checkCollision(enemy_bullet->destRect,player_castle->destRect))
-                {
-                    game->check = true;
-                    player_hp->hp_now = player_hp->hp_now-enemy_bullet->damage;
-                    game->run_bullet_enemy = false;
-                    enemy_bullet->reset();
-                    Mix_PlayChannel(-1, explosion, 0);
-                }
-                if (enemy_bullet->destRect.x<0||enemy_bullet->destRect.y>580)
-                {
-                    game->check = true;
-                    game->run_bullet_enemy = false;
-                    enemy_bullet->reset();
-                    Mix_PlayChannel(-1, explosion, 0);
-                }
+                type_animation = "";
+                animation_bullet->animation_now = 1;
             }
-            if (game->check)
-            {
-                game->step = game->step+1;
-                game->check = false;
-            }
-            if (game->step == 4)
-            {
-                game->step = 1;
-                rand_angle = 30+rand()%40;
-                rand_power = 200+rand()%400;
-                rand_bullet = 1+rand()%4;
-                power = 10;
-            }
-
-            if (frameDelay>frameTime)
-            {
-                SDL_Delay(frameDelay-frameTime);
-            }
-            explosion = Mix_LoadWAV("image/explosion.wav");
+            game->check = false;
+            if (game->step == 3) menu_show = true;
         }
+        if (game->step == 10)
+        {
+            game->step = 3;
+            rand_angle = 30+rand()%40;
+            rand_power = 200+rand()%100;
+            rand_bullet =4;// 1+rand()%4;
+            power = 10;
+            type_animation = "";
+            count_number = 0;
+            player_bullet->reset();
+            ice_bullet_3_1->reset();
+            ice_bullet_3_3->reset();
+        }
+        if (frameDelay>frameTime) SDL_Delay(frameDelay-frameTime);
+        explosion = Mix_LoadWAV("image/explosion.wav");
         SDL_RenderPresent(renderer);
+        cout<<game->step<<endl;
     }
     game->clean();
     return 0;
+
+
+
 }
+
