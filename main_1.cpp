@@ -117,7 +117,7 @@ class PlayerBullet
         double veloc = 400;
         int angle = -1;
         int t = 0;
-        int damage = 20;
+        int damage = 10;
         int type = -1;
         int count_2 = 8;
         int count_3 = 5;
@@ -307,8 +307,6 @@ void Game::render()
     if (run_ice_bullet_3_1)ice_bullet_3_1->render_bullet();
     if (run_ice_bullet_3_3)ice_bullet_3_3->render_bullet();
     if (pick_done == true) pick_bullet->render_pick();
-    if (win == true)SDL_RenderCopy(renderer,LoadTexture("image/winner.png"),NULL,NULL);
-    if (lose == true)SDL_RenderCopy(renderer,LoadTexture("image/winner.png"),NULL,NULL);
 }
 
 void Game::update()
@@ -859,24 +857,22 @@ int main(int argc, char *argv[])
     bool quit_show = false;
     bool begin_show = true;
     bool isMute = false;
-    bool play = false;
     bool can_update = true;
     bool check_bullet = false;
     int rand_angle = 30+rand()%40;
     int rand_power = 200+rand()%100;
-    int rand_bullet = 2;//1+rand()%4;
+    int rand_bullet = 1+rand()%4;
     int power = 10;
     int between_step = 0;
     int count_number = 0;
     int d = 1;
     bool between_step_count = false;
     string type_animation = "";
-    string type_animation_enemy = "";
     while (game->running())
     {
         frameStart = SDL_GetTicks();
         game->handleEvents();
-        game->update();
+        if (can_update)game->update();
         game->render();
         if (menu_show)          SDL_RenderCopy(renderer,LoadTexture("image/menu.png"),NULL,&menu_rect);
         if (menu_expand_show)   SDL_RenderCopy(renderer,LoadTexture("image/menu_expand.png"),NULL,&menu_expand_rect);
@@ -885,8 +881,6 @@ int main(int argc, char *argv[])
         frameTime=SDL_GetTicks()-frameStart;
         int x,y;
         Uint32 buttons = SDL_GetMouseState(&x, &y);
-        if (player_hp->hp_now == 0) game->lose =true;
-        if (enemy_hp->hp_now == 0) game->win = true;
         if ( game->step == 1 )
         {
                 if  (y>641 && y<685 && x>312 && x<544)
@@ -1049,7 +1043,7 @@ int main(int argc, char *argv[])
             else if (game->step == 5)
             {
                 count_number++;
-                player_cannon->cannon_now = 1 + count_number / 4;
+                player_cannon->cannon_now = 1 + count_number / 6;
                 if (player_cannon->cannon_now == 10) game->check = true;
             }
             else if (game->step == 6)
@@ -1078,7 +1072,7 @@ int main(int argc, char *argv[])
                 }
                 if (ice_bullet_3_1->can_count && type_animation == "ice_bullet_3")
                 {
-                    ice_bullet_3_1->t++;
+                    if (can_update)ice_bullet_3_1->t++;
                     if (checkCollision(ice_bullet_3_1->destRect,enemy_castle->destRect))
                     {
                         enemy_hp->hp_now = enemy_hp->hp_now - player_bullet->damage;
@@ -1098,7 +1092,7 @@ int main(int argc, char *argv[])
                 }
                 if (ice_bullet_3_3->can_count  && type_animation == "ice_bullet_3")
                 {
-                    ice_bullet_3_3->t++;
+                    if (can_update)ice_bullet_3_3->t++;
                     if (checkCollision(ice_bullet_3_3->destRect,enemy_castle->destRect))
                     {
                         enemy_hp->hp_now = enemy_hp->hp_now - player_bullet->damage;
@@ -1209,6 +1203,7 @@ int main(int argc, char *argv[])
                 {
                     menu_show = false;
                     menu_expand_show = true;
+                    can_update = false;
                 }
                 else if (menu_expand_show == true)
                 {
@@ -1216,6 +1211,7 @@ int main(int argc, char *argv[])
                     {
                         menu_expand_show = false;
                         menu_show = true;
+                        can_update = true;
                     }
                     else if (x>=644 && x<=746 && y>=331 && y<=374)
                     {
@@ -1237,6 +1233,7 @@ int main(int argc, char *argv[])
                         isMute = !isMute;
                         menu_expand_show = false;
                         menu_show = true;
+                        can_update = true;
                     }
                     else if (x>=644 && x<=746 && y>=448 && y<=490)
                     {
@@ -1250,6 +1247,7 @@ int main(int argc, char *argv[])
                     {
                         help_show = false;
                         menu_show = true;
+                        can_update = true;
                     }
                 }
                 else if (quit_show == true)
@@ -1258,13 +1256,16 @@ int main(int argc, char *argv[])
                     {
                         quit_show = false;
                         menu_show = true;
+                        can_update = true;
                     }
                     else if (x>=715 && x<=804 && y>=404 && y<=440)
                     {
                         quit_show = false;
+                        count_number = 0;
+                        between_step = 0;
+                        between_step_count = false;
                         fight = Mix_LoadWAV("image/fight.wav");
                         explosion = Mix_LoadWAV("image/explosion.wav");
-                        play = false;
                         menu_show = true;
                         player_hp->hp_now = 100;
                         enemy_hp->hp_now = 100;
@@ -1274,14 +1275,23 @@ int main(int argc, char *argv[])
                         game->step = 1;
                         game->win = false;
                         game->lose = false;
-                        player_bullet->count_2 = 3;
-                        player_bullet->count_3 = 2;
-                        player_bullet->count_4 = 1;
+                        player_bullet->count_2 = 8;
+                        player_bullet->count_3 = 5;
+                        player_bullet->count_4 = 2;
                         can_update = true;
                         player_bullet->can_count = false;
                         enemy_bullet->can_count = false;
+                        player_bullet->reset();
+                        enemy_bullet->reset();
+                        ice_bullet_3_1->can_count = false;
+                        ice_bullet_3_3->can_count = false;
+                        type_animation = "";
+                        game->check = false;
+                        //arrow->arrow_now = 1;
                     }
                 }
+
+
             }
         }
         if (between_step_count)between_step++;
@@ -1314,7 +1324,7 @@ int main(int argc, char *argv[])
             game->step = 3;
             rand_angle = 30+rand()%40;
             rand_power = 200+rand()%100;
-            rand_bullet =4;// 1+rand()%4;
+            rand_bullet = 1+rand()%4;
             power = 10;
             type_animation = "";
             count_number = 0;
@@ -1324,8 +1334,42 @@ int main(int argc, char *argv[])
         }
         if (frameDelay>frameTime) SDL_Delay(frameDelay-frameTime);
         explosion = Mix_LoadWAV("image/explosion.wav");
+        if (player_hp->hp_now <= 0 )game->lose = true;
+        if (enemy_hp->hp_now <=0 ) game->win = true;
+        if (game->win == true)SDL_RenderCopy(renderer,LoadTexture("image/winner.png"),NULL,NULL);
+        if (game->lose == true)SDL_RenderCopy(renderer,LoadTexture("image/lose.png"),NULL,NULL);
+        if (game->lose == true || game->win == true )
+            if  (buttons & SDL_BUTTON(SDL_BUTTON_RIGHT))
+            {
+                game->step = 1 ;
+                count_number = 0;
+                quit_show = false;
+                fight = Mix_LoadWAV("image/fight.wav");
+                explosion = Mix_LoadWAV("image/explosion.wav");
+                menu_show = false;
+                player_hp->hp_now = 100;
+                enemy_hp->hp_now = 100;
+                game->run_bullet_player = false;
+                game->run_bullet_enemy = false;
+                game->run_arrow = false;
+                game->win = false;
+                game->lose = false;
+                player_bullet->count_2 = 8;
+                player_bullet->count_3 = 5;
+                player_bullet->count_4 = 2;
+                player_bullet->can_count = false;
+                ice_bullet_3_1->can_count = false;
+                ice_bullet_3_3->can_count = false;
+                enemy_bullet->can_count = false;
+                player_bullet->reset();
+                enemy_bullet->reset();
+                between_step = 0;
+                between_step_count = false;
+                type_animation = "";
+                game->check = false;
+                //arrow->arrow_now = 1;
+            }
         SDL_RenderPresent(renderer);
-        cout<<game->step<<endl;
     }
     game->clean();
     return 0;
