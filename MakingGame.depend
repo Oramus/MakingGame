@@ -1,0 +1,11 @@
+# depslib dependency file v1.0
+1684113864 source:c:\users\admin\pythonnnn\code c++\sdl code\makinggame\main.cpp
+	"SDL.h"
+	"SDL_image.h"
+	"SDL_mixer.h"
+	<iostream>
+	<math.h>
+	<string>
+	<cstdlib>
+	<vector>
+
