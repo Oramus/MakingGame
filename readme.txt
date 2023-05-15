@@ -1,15 +1,4 @@
-Copyright Notice:
------------------
-The files within this zip file are copyrighted by Lazy Foo' Productions (2004-2022)
-and may not be redistributed without written permission.
-
-This project is linked against:
-----------------------------------------
-Windows:
-SDL2
-SDL2main
-SDL2_image
-
-*nix:
-SDL2
-SDL2_image
+Avatar's Introductions :
+-This game is about a fight between ice and earth castle. You can play with one player or two player mode.
+-Each castle has 4 types of bullet and each type has its limit.
+-Download file 'download' zip to install this game
